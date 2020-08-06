@@ -1,0 +1,72 @@
+# 导包
+import requests
+from time import sleep
+import os
+import threading
+import parsel
+import random
+
+if not os.path.exists('image'):
+    os.mkdir('image')
+
+# base_url = 'https://anime-pictures.net/pictures/view_posts/0?lang=en'
+
+headers = {
+    'User-Agent':'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.89 Safari/537.36'
+    'Host': 'anime-pictures.net'
+    
+}
+
+
+def get(url, headers):
+    '''请求数据'''
+    response = requests.get(url, headers)
+    html_data = response.text
+    return html_data
+
+
+def parsel_data(html_data):
+    '''筛选数据'''
+    selector = parsel.Selector(html_data)
+    result_list = selector.xpath('//span[@class="img_block_big"]')
+
+    for result in result_list:
+        image_url = result.xpath('./a/picture/source/img/@src').extract_first()
+        image_id = result.xpath('./a/picture/source/img/@id').extract_first()
+
+        img_url = 'https:' + image_url  # 手动拼url
+
+        all_title = img_url
+
+        img_data = requests.get(url=all_title, headers=headers).content
+
+        yield image_id, img_data
+
+
+def save(image_id,img_data):
+    '''保存数据'''
+    try:
+        with open('image\\' + str(random.randint(0, 10000000000)) + os.path.splitext(img_name)[1], mode='wb') as f:
+            print('保存菌:保存成功:', str(random.randint(0, 10000000000)))
+            f.write(img_data)
+    except:
+        print('保存菌:保存失败:', image_id)
+
+
+def start_save(base_url):
+    html_data = get(url=base_url, headers=headers)
+    for image_data in parsel_data(html_data):
+        all_title = image_data[0]  # url https://xxxxxxxxxx...
+        img_id = image_data[1]  # ID
+        img_data = image_data[2]  # 数据
+        img_name = image_data[3]  # 文件名
+        save(all_title=all_title, image_id=img_id, img_data=img_data, img_name=img_name)
+
+
+def main(page):
+    for page in range(2000, page + 1):
+        print('###############正在下载第{}页数据###############'.format(page))
+        base_url = 'https://anime-pictures.net/pictures/view_posts/0?lang=en'.format(page)
+        if page > 0:
+            print('请求菌:休息一下')
+            sleep(5)
