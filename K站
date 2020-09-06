@@ -1,0 +1,66 @@
+import requests
+import threading
+import os
+import random
+from time import sleep
+import parsel
+
+
+headers = {
+    'User-Agent':
+        'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.89 Safari/537.36'
+
+}
+
+
+if not os.path.exists('image'):
+    os.mkdir('image')
+
+
+def get(url,headers):
+    '''请求数据'''
+    response = requests.get(url,headers)
+    html_data = response.text
+    return html_data
+
+
+def parsel_data(html_data):
+    selector = parsel.Selector(html_data)
+
+    sel = selector.xpath('//li[@style="width: 170px;"]')
+
+    for result in sel:
+        img_url = result.xpath('./div/a/img/@src').extract_first()
+        last_name = img_url.split('.')[-1]
+        img_data = requests.get(url=img_url,headers=headers).content
+        yield img_data,last_name
+
+
+def save(img_data,last_name):
+    num = str(random.randint(0,1000000000000000000))
+    try:
+        with open('image\\' + num + '.' + last_name, mode='wb') as f:
+            print('保存菌报道:下载成功:',num)
+            f.write(img_data)
+
+
+    except:
+        pass
+        print('保存菌报道:下载失败')
+
+
+def start_save(base_url):
+    html_data = get(url=base_url,headers=headers)
+    for image_data in parsel_data(html_data):
+        img_data = image_data[0]
+        last_name = image_data[1]
+        save(img_data = img_data,last_name = last_name)
+
+
+def main(page):
+    for page in range(0,page+1):
+        print('#########正在下载第{}页数据#########'.format(page))
+        base_url = 'https://konachan.com/post?page={}&tags='.format(page)
+        if page > 1 :
+            print('请求菌报道:休息一下')
+            sleep(0.5)
